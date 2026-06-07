@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>sambayford — GitHub Repos</title>
+<title>GitHub Repos</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -96,6 +96,7 @@
   }
 
   #profile.visible { display: flex; }
+  #profile:hover { border-color: var(--accent); }
 
   #profile img {
     width: 48px;
@@ -104,10 +105,7 @@
     border: 2px solid var(--accent);
   }
 
-  #profile-name {
-    font-weight: 700;
-    font-size: 1.1rem;
-  }
+  #profile-name { color: var(--text); font-weight: 700; font-size: 1.1rem; }
 
   #profile-meta {
     font-family: 'Space Mono', monospace;
@@ -283,18 +281,18 @@
 <body>
 <div class="container">
   <header>
-    <p class="eyebrow">// GitHub</p>
-    <h1>launcher</h1>
+    <p class="eyebrow">// GitHub Repos</p>
+    <h1><span>Launcher.</span></h1>
   </header>
 
   <div id="status"></div>
-  <div id="profile">
+  <a id="profile" href="https://github.com/sambayford" target="_blank" rel="noopener" style="text-decoration:none;cursor:pointer;">
     <img id="profile-avatar" src="" alt="">
     <div>
       <div id="profile-name"></div>
       <div id="profile-meta"></div>
     </div>
-  </div>
+  </a>
   <div id="controls">
     <input type="text" id="search-filter" placeholder="filter repos...">
     <button class="pill active" data-sort="updated">Recent</button>
