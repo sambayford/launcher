@@ -362,7 +362,7 @@
       document.getElementById('profile-avatar').src = user.avatar_url;
       document.getElementById('profile-name').textContent = user.name || user.login;
       document.getElementById('profile-meta').innerHTML =
-        `<span>${repos.length} public repos</span> · <span style="color:var(--text)">${user.followers} followers</span>`;
+        `<span>${repos.length} public repos</span>`;
       profileEl.classList.add('visible');
       controlsEl.classList.add('visible');
 
