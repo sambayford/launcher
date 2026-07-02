@@ -188,8 +188,6 @@
     background: rgba(0,255,136,0.08);
   }
 
-  .icon-btn.loading { opacity: 0.45; pointer-events: none; }
-
   /* Repo grid */
   #repos {
     margin-top: 24px;
@@ -327,7 +325,7 @@
     <button class="pill" data-sort="stars">Stars</button>
     <button class="pill" data-sort="name">A–Z</button>
     <button class="pill" data-sort="forks">Forks</button>
-    <button class="pill" id="gh-auth" type="button">Connect GitHub</button>
+    <button class="pill" id="fav-filter" type="button">★ Favourites</button>
   </div>
   <div id="repos"></div>
 
@@ -370,121 +368,31 @@
 
   let allRepos = [];
   let sortKey = 'updated';
-  let starWatchState = {}; // { [repoName]: { starred, watching, loading } }
+  let showFavouritesOnly = false;
 
-  const TOKEN_KEY = 'gh_pat';
-  function getToken() { return localStorage.getItem(TOKEN_KEY); }
-  function setToken(t) { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); }
+  const FAV_KEY = 'favourite_repos';
+  let favourites = new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]'));
 
-  function updateAuthButton() {
-    const btn = document.getElementById('gh-auth');
-    if (getToken()) {
-      btn.textContent = 'GitHub connected ✓';
-      btn.classList.add('active');
-    } else {
-      btn.textContent = 'Connect GitHub';
-      btn.classList.remove('active');
-    }
+  function saveFavourites() {
+    localStorage.setItem(FAV_KEY, JSON.stringify([...favourites]));
   }
 
-  document.getElementById('gh-auth').addEventListener('click', () => {
-    if (getToken()) {
-      if (confirm('Disconnect GitHub? This clears your saved token from this browser.')) {
-        setToken(null);
-        starWatchState = {};
-        updateAuthButton();
-        renderRepos();
-      }
+  function toggleFavourite(name) {
+    if (favourites.has(name)) {
+      favourites.delete(name);
     } else {
-      const t = prompt(
-        'Paste a GitHub personal access token to star/watch repos.\n' +
-        'Needs "public_repo" (or "repo") scope, plus read/write access to starring and watching.\n' +
-        'It is stored only in this browser (localStorage) and sent directly to api.github.com — never to any other server.'
-      );
-      if (t && t.trim()) {
-        setToken(t.trim());
-        updateAuthButton();
-        renderRepos();
-        hydrateStarWatchState();
-      }
+      favourites.add(name);
     }
+    saveFavourites();
+    renderRepos();
+  }
+
+  const favFilterBtn = document.getElementById('fav-filter');
+  favFilterBtn.addEventListener('click', () => {
+    showFavouritesOnly = !showFavouritesOnly;
+    favFilterBtn.classList.toggle('active', showFavouritesOnly);
+    renderRepos();
   });
-
-  function ghHeaders(extra) {
-    return Object.assign({
-      'Authorization': `Bearer ${getToken()}`,
-      'Accept': 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    }, extra || {});
-  }
-
-  async function hydrateStarWatchState() {
-    const token = getToken();
-    if (!token || allRepos.length === 0) return;
-    await Promise.all(allRepos.map(async (r) => {
-      try {
-        const [starRes, watchRes] = await Promise.all([
-          fetch(`https://api.github.com/user/starred/${USERNAME}/${r.name}`, { headers: ghHeaders() }),
-          fetch(`https://api.github.com/repos/${USERNAME}/${r.name}/subscription`, { headers: ghHeaders() }),
-        ]);
-        starWatchState[r.name] = {
-          starred: starRes.status === 204,
-          watching: watchRes.status === 200,
-        };
-      } catch (e) {
-        starWatchState[r.name] = { starred: false, watching: false };
-      }
-    }));
-    renderRepos();
-  }
-
-  async function toggleStar(name) {
-    if (!getToken()) return document.getElementById('gh-auth').click();
-    const prev = starWatchState[name] || {};
-    const willStar = !prev.starred;
-    starWatchState[name] = Object.assign({}, prev, { loading: true });
-    renderRepos();
-    try {
-      const res = await fetch(`https://api.github.com/user/starred/${USERNAME}/${name}`, {
-        method: willStar ? 'PUT' : 'DELETE',
-        headers: ghHeaders({ 'Content-Length': '0' }),
-      });
-      if (!res.ok) throw new Error(`GitHub API error (${res.status})`);
-      starWatchState[name] = { starred: willStar, watching: prev.watching, loading: false };
-    } catch (e) {
-      starWatchState[name] = Object.assign({}, prev, { loading: false });
-      alert(`Couldn't update star: ${e.message}`);
-    }
-    renderRepos();
-  }
-
-  async function toggleWatch(name) {
-    if (!getToken()) return document.getElementById('gh-auth').click();
-    const prev = starWatchState[name] || {};
-    const willWatch = !prev.watching;
-    starWatchState[name] = Object.assign({}, prev, { loading: true });
-    renderRepos();
-    try {
-      const res = willWatch
-        ? await fetch(`https://api.github.com/repos/${USERNAME}/${name}/subscription`, {
-            method: 'PUT',
-            headers: ghHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ subscribed: true, ignored: false }),
-          })
-        : await fetch(`https://api.github.com/repos/${USERNAME}/${name}/subscription`, {
-            method: 'DELETE',
-            headers: ghHeaders(),
-          });
-      if (!res.ok) throw new Error(`GitHub API error (${res.status})`);
-      starWatchState[name] = { starred: prev.starred, watching: willWatch, loading: false };
-    } catch (e) {
-      starWatchState[name] = Object.assign({}, prev, { loading: false });
-      alert(`Couldn't update watch status: ${e.message}`);
-    }
-    renderRepos();
-  }
-
-  updateAuthButton();
 
   document.querySelectorAll('.pill[data-sort]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -536,18 +444,11 @@
     reposEl.addEventListener('pointercancel', clearPress);
 
     reposEl.addEventListener('click', (e) => {
-      const starBtn = e.target.closest('.star-btn');
-      const watchBtn = e.target.closest('.watch-btn');
-      if (starBtn) {
+      const favBtn = e.target.closest('.fav-btn');
+      if (favBtn) {
         e.preventDefault();
         e.stopPropagation();
-        toggleStar(starBtn.dataset.repo);
-        return;
-      }
-      if (watchBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleWatch(watchBtn.dataset.repo);
+        toggleFavourite(favBtn.dataset.repo);
         return;
       }
       if (longPressTriggered) {
@@ -602,7 +503,6 @@
       status.textContent = `// ${repos.length} repos loaded`;
 
       renderRepos();
-      hydrateStarWatchState();
     } catch (err) {
       status.className = 'error';
       status.textContent = `// error: ${err.message}`;
@@ -620,6 +520,10 @@
       (r.description || '').toLowerCase().includes(filter)
     );
 
+    if (showFavouritesOnly) {
+      list = list.filter(r => favourites.has(r.name));
+    }
+
     list.sort((a, b) => {
       if (sortKey === 'updated') return new Date(b.pushed_at) - new Date(a.pushed_at);
       if (sortKey === 'stars')   return b.stargazers_count - a.stargazers_count;
@@ -630,7 +534,8 @@
 
     const reposEl = document.getElementById('repos');
     if (list.length === 0) {
-      reposEl.innerHTML = `<p style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);margin-top:8px;">// no repos match filter</p>`;
+      const msg = showFavouritesOnly ? '// no favourites yet' : '// no repos match filter';
+      reposEl.innerHTML = `<p style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);margin-top:8px;">${msg}</p>`;
       return;
     }
 
@@ -648,10 +553,8 @@
 
     const pagesUrl = `https://sambayford.github.io/${r.name}/`;
     const homeUrl = `https://github.com/sambayford/${r.name}`;
-    const state = starWatchState[r.name] || {};
-    const starLabel = state.starred ? '★ Starred' : '☆ Star';
-    const watchLabel = state.watching ? '👁 Watching' : '👁 Watch';
-    const loadingCls = state.loading ? 'loading' : '';
+    const isFav = favourites.has(r.name);
+    const favLabel = isFav ? '★ Favourited' : '☆ Favourite';
 
     return `
       <a class="repo-card" href="${pagesUrl}" target="_blank" rel="noopener"
@@ -668,8 +571,7 @@
           <span class="updated">↻ ${updated}</span>
         </div>
         <div class="repo-actions">
-          <button type="button" class="icon-btn star-btn ${state.starred ? 'active' : ''} ${loadingCls}" data-repo="${escHtml(r.name)}">${starLabel}</button>
-          <button type="button" class="icon-btn watch-btn ${state.watching ? 'active' : ''} ${loadingCls}" data-repo="${escHtml(r.name)}">${watchLabel}</button>
+          <button type="button" class="icon-btn fav-btn ${isFav ? 'active' : ''}" data-repo="${escHtml(r.name)}">${favLabel}</button>
         </div>
       </a>`;
   }
@@ -710,6 +612,10 @@
       (r.description || '').toLowerCase().includes(filter)
     );
 
+    if (showFavouritesOnly) {
+      list = list.filter(r => favourites.has(r.name));
+    }
+
     list.sort((a, b) => {
       if (sortKey === 'updated') return new Date(b.pushed_at) - new Date(a.pushed_at);
       if (sortKey === 'stars')   return b.stargazers_count - a.stargazers_count;
@@ -720,7 +626,8 @@
 
     const reposEl = document.getElementById('repos');
     if (list.length === 0) {
-      reposEl.innerHTML = `<p style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);margin-top:8px;">// no repos match filter</p>`;
+      const msg = showFavouritesOnly ? '// no favourites yet' : '// no repos match filter';
+      reposEl.innerHTML = `<p style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);margin-top:8px;">${msg}</p>`;
       return;
     }
 
