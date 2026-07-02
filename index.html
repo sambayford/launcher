@@ -315,6 +315,30 @@
   };
 
   const USERNAME = 'sambayford';
+
+  const REPO_EMOJI = {
+    'blockade': '🧱',
+    'fruit-cascade': '🍉',
+    'gen-golf': '⛳',
+    'i-heart-words': '📖',
+    'it-s-a-game': '💻',
+    'launcher': '🚀',
+    'mahjong': '🀄',
+    'puzzle-bound': '🧩',
+    'streak': '🔥',
+    'sudoku': '🔢',
+    'watch-games': '⌚',
+  };
+
+  const LANG_EMOJI_FALLBACK = {
+    JavaScript: '📜', TypeScript: '📜', HTML: '🌐', CSS: '🎨',
+    Python: '🐍', Shell: '🐚',
+  };
+
+  function repoEmoji(r) {
+    return REPO_EMOJI[r.name] || LANG_EMOJI_FALLBACK[r.language] || '🗂️';
+  }
+
   let allRepos = [];
   let sortKey = 'updated';
 
@@ -469,7 +493,7 @@
          data-home="${homeUrl}"
          style="animation-delay:${Math.min(i * 40, 400)}ms">
         <div class="repo-top">
-          <span class="repo-name">${escHtml(r.name)}${fork}</span>
+          <span class="repo-name">${repoEmoji(r)} ${escHtml(r.name)}${fork}</span>
         </div>
         ${desc}
         <div class="repo-meta">
