@@ -329,6 +329,55 @@
 
   document.getElementById('search-filter').addEventListener('input', renderRepos);
 
+  // Long-press on a repo card opens its GitHub code page instead of the
+  // GitHub Pages page that a normal tap/click opens.
+  (function setupLongPress() {
+    const LONG_PRESS_MS = 500;
+    const MOVE_THRESHOLD = 10;
+    const reposEl = document.getElementById('repos');
+    let pressTimer = null;
+    let longPressTriggered = false;
+    let startX = 0, startY = 0;
+
+    function clearPress() {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+
+    reposEl.addEventListener('pointerdown', (e) => {
+      const card = e.target.closest('.repo-card');
+      if (!card) return;
+      longPressTriggered = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      pressTimer = setTimeout(() => {
+        longPressTriggered = true;
+        window.open(card.dataset.home, '_blank', 'noopener');
+      }, LONG_PRESS_MS);
+    });
+
+    reposEl.addEventListener('pointermove', (e) => {
+      if (!pressTimer) return;
+      if (Math.abs(e.clientX - startX) > MOVE_THRESHOLD || Math.abs(e.clientY - startY) > MOVE_THRESHOLD) {
+        clearPress();
+      }
+    });
+
+    reposEl.addEventListener('pointerup', clearPress);
+    reposEl.addEventListener('pointercancel', clearPress);
+
+    reposEl.addEventListener('click', (e) => {
+      if (longPressTriggered) {
+        e.preventDefault();
+        longPressTriggered = false;
+      }
+    });
+
+    reposEl.addEventListener('contextmenu', (e) => {
+      if (e.target.closest('.repo-card')) e.preventDefault();
+    });
+  })();
+
   async function fetchRepos() {
     const username = USERNAME;
     const status = document.getElementById('status');
@@ -414,8 +463,10 @@
       : '';
 
     const pagesUrl = `https://sambayford.github.io/${r.name}/`;
+    const homeUrl = `https://github.com/sambayford/${r.name}`;
     return `
       <a class="repo-card" href="${pagesUrl}" target="_blank" rel="noopener"
+         data-home="${homeUrl}"
          style="animation-delay:${Math.min(i * 40, 400)}ms">
         <div class="repo-top">
           <span class="repo-name">${escHtml(r.name)}${fork}</span>
