@@ -525,6 +525,8 @@
     }
 
     list.sort((a, b) => {
+      const favDiff = (favourites.has(b.name) ? 1 : 0) - (favourites.has(a.name) ? 1 : 0);
+      if (favDiff !== 0) return favDiff;
       if (sortKey === 'updated') return new Date(b.pushed_at) - new Date(a.pushed_at);
       if (sortKey === 'stars')   return b.stargazers_count - a.stargazers_count;
       if (sortKey === 'forks')   return b.forks_count - a.forks_count;
@@ -617,6 +619,8 @@
     }
 
     list.sort((a, b) => {
+      const favDiff = (favourites.has(b.name) ? 1 : 0) - (favourites.has(a.name) ? 1 : 0);
+      if (favDiff !== 0) return favDiff;
       if (sortKey === 'updated') return new Date(b.pushed_at) - new Date(a.pushed_at);
       if (sortKey === 'stars')   return b.stargazers_count - a.stargazers_count;
       if (sortKey === 'forks')   return b.forks_count - a.forks_count;
