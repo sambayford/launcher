@@ -320,7 +320,7 @@
     </div>
   </a>
   <div id="controls">
-    <input type="text" id="search-filter" placeholder="filter repos...">
+    <input type="text" id="search-filter" placeholder="filter pages...">
     <button class="pill active" data-sort="updated">Recent</button>
     <button class="pill" data-sort="stars">Stars</button>
     <button class="pill" data-sort="name">A–Z</button>
@@ -344,7 +344,6 @@
   const USERNAME = 'sambayford';
 
   const REPO_EMOJI = {
-    'Android-Repo-Launcher': '📱',
     'battle-boats': '🚢',
     'blockade': '🧱',
     'family-tree': '🌳',
@@ -476,7 +475,7 @@
     const controlsEl = document.getElementById('controls');
 
     status.className = 'loading';
-    status.textContent = `// loading repos...`;
+    status.textContent = `// loading pages...`;
     reposEl.innerHTML = skeletons(6);
     profileEl.classList.remove('visible');
     controlsEl.classList.remove('visible');
@@ -489,7 +488,7 @@
       let page = 1, repos = [];
       while (true) {
         const r = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&page=${page}`);
-        if (!r.ok) throw new Error(`Failed to fetch repos (page ${page}).`);
+        if (!r.ok) throw new Error(`Failed to fetch pages (page ${page}).`);
         const batch = await r.json();
         repos = repos.concat(batch);
         if (batch.length < 100) break;
@@ -506,7 +505,7 @@
       controlsEl.classList.add('visible');
 
       status.className = '';
-      status.textContent = `// ${repos.length} repos loaded`;
+      status.textContent = `// ${repos.length} pages loaded`;
 
       renderRepos();
     } catch (err) {
@@ -542,7 +541,7 @@
 
     const reposEl = document.getElementById('repos');
     if (list.length === 0) {
-      const msg = showFavouritesOnly ? '// no favourites yet' : '// no repos match filter';
+      const msg = showFavouritesOnly ? '// no favourites yet' : '// no pages match filter';
       reposEl.innerHTML = `<p style="font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);margin-top:8px;">${msg}</p>`;
       return;
     }
